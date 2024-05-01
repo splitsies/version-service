@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  version-service
+
+  SAM Template for version-service
+
+Parameters:
+  Stage:
+    Type: String
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30    
+    MemorySize: 1024
+
+    LoggingConfig:
+      LogFormat: JSON
+
+Resources:
+  VersionServiceApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Sub ${Stage}
+
+  GetMinSupportedVersionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src
+      Handler: handler.main
+      Runtime: nodejs18.x
+      Events:
+        Notify:
+          Type: Api
+          Properties:
+            Path: /minimum
+            Method: get
+            RestApiId: !Ref VersionServiceApi
+    Metadata: # Manage esbuild properties
+        BuildMethod: esbuild
+        BuildProperties:
+          Minify: true
+          Target: es2020
+          Sourcemap: true
+          EntryPoints:
+          - functions/get-min-supported-version/handler.ts
+          External:
+          - node_modules
+          - aws-sdk
+          - esbuild
+
+  GetProductionVersionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src
+      Handler: handler.main
+      Runtime: nodejs18.x
+      Events:
+        Notify:
+          Type: Api
+          Properties:
+            Path: /stable
+            Method: get
+            RestApiId: !Ref VersionServiceApi
+    Metadata: # Manage esbuild properties
+        BuildMethod: esbuild
+        BuildProperties:
+          Minify: true
+          Target: es2020
+          Sourcemap: true
+          EntryPoints:
+          - functions/get-production-version/handler.ts
+          External:
+          - node_modules
+          - aws-sdk
+          - esbuild
