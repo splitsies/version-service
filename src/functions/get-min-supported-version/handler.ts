@@ -4,5 +4,5 @@ import { DataResponse, HttpStatusCode } from "@splitsies/shared-models";
 import config from "../../config/version.config.json";
 
 export const main = SplitsiesFunctionHandlerFactory.create<never, string>(new Logger(), async (event) => {
-    return new DataResponse(HttpStatusCode.OK, config.minSupportedVersion);
+    return new DataResponse(HttpStatusCode.OK, process.env.MinimumSupportedVersion);
 });

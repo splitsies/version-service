@@ -17,6 +17,10 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
+parameter_overrides = [
+  "MinimumSupportedVersion=1.2.3",
+  "LatestStableVersion=1.2.3"
+]
 
 [default.package.parameters]
 resolve_s3 = true

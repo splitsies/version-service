@@ -8,6 +8,10 @@ Description: >
 Parameters:
   Stage:
     Type: String
+  MinimumSupportedVersion:
+    Type: String
+  LatestStableVersion:
+    Type: String
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -17,6 +21,11 @@ Globals:
 
     LoggingConfig:
       LogFormat: JSON
+
+    Environment:
+      Variables:
+        MinimumSupportedVersion: !Ref MinimumSupportedVersion
+        LatestStableVersion: !Ref LatestStableVersion
 
 Resources:
   VersionServiceApi:
