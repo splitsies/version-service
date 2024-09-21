@@ -31,4 +31,4 @@ jobs:
         sam deploy --stack-name version-service-production \
         --no-confirm-changeset \
         --no-fail-on-empty-changeset \
-        --parameter-overrides "Stage=production"
+        --parameter-overrides "Stage=production" "StageName=production"

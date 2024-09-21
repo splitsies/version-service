@@ -6,13 +6,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clear-shared-models": "npm cache clean --force && rm -rf ./node_modules/@splitsies/shared-models && rm -rf ./package-lock.json",
-    "clear-utils": "npm cache clean --force && rm -rf ./node_modules/@splitsies/utils && rm -rf ./package-lock.json"
+    "clear-utils": "npm cache clean --force && rm -rf ./node_modules/@splitsies/utils && rm -rf ./package-lock.json && npm i"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@splitsies/shared-models": "^0.0.29",
-    "@splitsies/utils": "^0.0.30",
+    "@splitsies/utils": "./splitsies-utils-0.0.33.tgz",
     "@types/aws-lambda": "^8.10.114",
     "aws-lambda": "^1.0.7",
     "aws-sdk": "^2.1606.0",
