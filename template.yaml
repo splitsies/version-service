@@ -23,6 +23,7 @@ Globals:
         Stage: !Ref Stage
         RtRegion: !Sub ${AWS::Region}
         StageName: !Ref StageName
+        UserConnectedTopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Splitsies-UserConnected-${StageName}
 
     LoggingConfig:
       LogFormat: JSON
