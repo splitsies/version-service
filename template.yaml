@@ -8,12 +8,21 @@ Description: >
 Parameters:
   Stage:
     Type: String
+  StageName:
+    Type: String
+  
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 30    
-    MemorySize: 1024
+    MemorySize: 256
+
+    Environment:
+      Variables:
+        Stage: !Ref Stage
+        RtRegion: !Sub ${AWS::Region}
+        StageName: !Ref StageName
 
     LoggingConfig:
       LogFormat: JSON
@@ -24,12 +33,41 @@ Resources:
     Properties:
       StageName: !Sub ${Stage}
 
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: VersionServiceLambdaExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Permissions to create and manage logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+              # Allow Lambda to publish SNS messages
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Splitsies-UserConnected-${StageName} 
+
   GetMinSupportedVersionFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src
       Handler: handler.main
       Runtime: nodejs18.x
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Notify:
           Type: Api

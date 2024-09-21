@@ -31,4 +31,4 @@ jobs:
         sam deploy --stack-name version-service-dev-pr \
         --no-confirm-changeset \
         --no-fail-on-empty-changeset \
-        --parameter-overrides "Stage=devpr"
+        --parameter-overrides "Stage=devpr" "StageName=dev-pr"
