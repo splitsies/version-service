@@ -17,14 +17,6 @@ Globals:
   Function:
     Timeout: 30    
     MemorySize: 256
-
-    Environment:
-      Variables:
-        Stage: !Ref Stage
-        RtRegion: !Sub ${AWS::Region}
-        StageName: !Ref StageName
-        UserConnectedTopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Splitsies-UserConnected-${StageName}
-
     LoggingConfig:
       LogFormat: JSON
 
@@ -70,7 +62,14 @@ Resources:
       CodeUri: ./src
       Handler: handler.main
       Runtime: nodejs18.x
-      Role: !GetAtt LambdaExecutionRole.Arn
+      Role: !GetAtt LambdaExecutionRole.Arn    
+      Environment:
+        Variables:
+          Stage: !Ref Stage
+          RtRegion: !Sub ${AWS::Region}
+          StageName: !Ref StageName
+          UserConnectedTopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Splitsies-UserConnected-${StageName}
+
       Events:
         Notify:
           Type: Api
@@ -97,6 +96,12 @@ Resources:
       CodeUri: ./src
       Handler: handler.main
       Runtime: nodejs18.x
+      Environment:
+        Variables:
+          Stage: !Ref Stage
+          RtRegion: !Sub ${AWS::Region}
+          StageName: !Ref StageName
+          UserConnectedTopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Splitsies-UserConnected-${StageName}
       Events:
         Notify:
           Type: Api
