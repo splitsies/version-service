@@ -42,7 +42,9 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: lambda.amazonaws.com
+              Service: 
+                - lambda.amazonaws.com
+                - edgelambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: VersionServiceLambdaExecutionPolicy
@@ -113,6 +115,29 @@ Resources:
           External:
           - node_modules
           - aws-sdk
+          - esbuild  
+
+  NotifyConnectionEdgeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/functions/edge/notify-connection
+      Handler: handler.main
+      Runtime: nodejs18.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      # Deployment to us-east-1 (required for Lambda@Edge)
+      AutoPublishAlias: live  # Optional, use if you want aliasing for versioning
+      Description: "Lambda@Edge function for CloudFront viewer request"
+    Metadata: # Manage esbuild properties
+        BuildMethod: esbuild
+        BuildProperties:
+          Minify: true
+          Target: es2020
+          Sourcemap: true
+          EntryPoints:
+          - handler.ts
+          External:
+          - node_modules
+          - aws-sdk
           - esbuild
 
   # S3 Bucket for Content
@@ -169,6 +194,9 @@ Resources:
           DefaultTTL: 604800  # 1 week
           MaxTTL: 31536000  # 1 year
           MinTTL: 604800      # 1 week
+          LambdaFunctionAssociations:
+            - EventType: viewer-request
+              LambdaFunctionARN: !Ref NotifyConnectionEdgeFunction.Version
         ViewerCertificate:
           CloudFrontDefaultCertificate: true  # Use default SSL certificate
         PriceClass: PriceClass_100  # For US/Europe only
