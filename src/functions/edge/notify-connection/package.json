@@ -11,10 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@splitsies/shared-models": "^0.0.29",
-    "@splitsies/utils": "./splitsies-utils-0.0.33.tgz",
-    "esbuild": "^0.14.14",
-    "reflect-metadata": "^0.1.13"
+    "esbuild": "^0.14.14"
   },
   "devDependencies": {
     "@jest/globals": "^29.2.0",
