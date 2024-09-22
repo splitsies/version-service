@@ -123,6 +123,8 @@ Resources:
       CodeUri: ./src/functions/edge/notify-connection
       Handler: handler.main
       Runtime: nodejs18.x
+      Timeout: 5    
+      MemorySize: 128
       Role: !GetAtt LambdaExecutionRole.Arn
       # Deployment to us-east-1 (required for Lambda@Edge)
       AutoPublishAlias: live  # Optional, use if you want aliasing for versioning
