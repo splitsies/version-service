@@ -4,6 +4,7 @@ import snsConfig from "./sns.config.json";
 const snsClient = new SNSClient({ region: snsConfig.region });
 
 export const main = async (event, _, callback) => {
+    console.warn(event);
     await snsClient.send(
         new PublishCommand({
             TopicArn: snsConfig.arn,
