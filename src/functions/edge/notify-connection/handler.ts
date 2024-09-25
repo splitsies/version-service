@@ -3,12 +3,11 @@ import snsConfig from "./sns.config.json";
 
 const snsClient = new SNSClient({ region: snsConfig.region });
 
-export const main = async (event, context, callback) => {
-    console.log({ event, context, env: process.env });
+export const main = async (event, _, callback) => {
     await snsClient.send(
         new PublishCommand({
             TopicArn: snsConfig.arn,
-            Message: JSON.stringify(process.env),
+            Message: JSON.stringify({ data: process.env.AWS_REGION ?? "us-east-1" }),
         }),
     );
 
