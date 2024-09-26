@@ -29,6 +29,7 @@ jobs:
         aws-region: us-east-1
     - run: sam build
     - run: |
-        sam deploy --stack-name version-service-dev-pr \
+        sam deploy --stack-name version-service \
         --no-confirm-changeset \
-        --no-fail-on-empty-changeset
+        --no-fail-on-empty-changeset \
+        --parameter-overrides "Stage=dev"

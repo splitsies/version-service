@@ -5,12 +5,16 @@ Description: >
 
   SAM Template for version-service
 
+Parameters:
+  Stage:
+    Type: String
+
 Resources:
   # S3 Bucket for Content
   VersionConfigurationBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-bucket"
+      BucketName: !Sub "splitsies-${AWS::StackName}-${Stage}-bucket"
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
