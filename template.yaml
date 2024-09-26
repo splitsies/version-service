@@ -8,109 +8,71 @@ Description: >
 Parameters:
   Stage:
     Type: String
-  StageName:
-    Type: String
-  
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
-Globals:
-  Function:
-    Timeout: 30    
-    MemorySize: 256
-
-    Environment:
-      Variables:
-        Stage: !Ref Stage
-        RtRegion: !Sub ${AWS::Region}
-        StageName: !Ref StageName
-        UserConnectedTopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Splitsies-UserConnected-${StageName}
-
-    LoggingConfig:
-      LogFormat: JSON
 
 Resources:
-  VersionServiceApi:
-    Type: AWS::Serverless::Api
+  # S3 Bucket for Content
+  VersionConfigurationBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      StageName: !Sub ${Stage}
+      BucketName: !Sub "splitsies-${AWS::StackName}-${Stage}-bucket"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
 
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
+  # CloudFront Origin Access Identity (OAI) to restrict access to S3 bucket
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "OAI for ${AWS::StackName} to restrict S3 access"
+
+  # S3 Bucket Policy to allow CloudFront to read content from S3
+  S3VersionConfigurationBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref VersionConfigurationBucket
+      PolicyDocument:
         Statement:
           - Effect: Allow
             Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: VersionServiceLambdaExecutionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              # Permissions to create and manage logs
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: arn:aws:logs:*:*:*
+              CanonicalUser: !GetAtt CloudFrontOAI.S3CanonicalUserId
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${VersionConfigurationBucket}/*"
 
-              # Allow Lambda to publish SNS messages
-              - Effect: Allow
-                Action: sns:Publish
-                Resource: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:Splitsies-UserConnected-${StageName} 
-
-  GetMinSupportedVersionFunction:
-    Type: AWS::Serverless::Function
+  # CloudFront Distribution
+  VersionCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
     Properties:
-      CodeUri: ./src
-      Handler: handler.main
-      Runtime: nodejs18.x
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        Notify:
-          Type: Api
-          Properties:
-            Path: /minimum
-            Method: get
-            RestApiId: !Ref VersionServiceApi
-    Metadata: # Manage esbuild properties
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: es2020
-          Sourcemap: true
-          EntryPoints:
-          - functions/get-min-supported-version/handler.ts
-          External:
-          - node_modules
-          - aws-sdk
-          - esbuild
+      DistributionConfig:
+        Origins:
+          - Id: MyS3Origin
+            DomainName: !GetAtt VersionConfigurationBucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOAI}"
+        Enabled: true
+        DefaultCacheBehavior:
+          TargetOriginId: MyS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+          DefaultTTL: 604800  # 1 week
+          MaxTTL: 31536000  # 1 year
+          MinTTL: 604800      # 1 week
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true  # Use default SSL certificate
+        PriceClass: PriceClass_100  # For US/Europe only
 
-  GetProductionVersionFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src
-      Handler: handler.main
-      Runtime: nodejs18.x
-      Events:
-        Notify:
-          Type: Api
-          Properties:
-            Path: /stable
-            Method: get
-            RestApiId: !Ref VersionServiceApi
-    Metadata: # Manage esbuild properties
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: es2020
-          Sourcemap: true
-          EntryPoints:
-          - functions/get-production-version/handler.ts
-          External:
-          - node_modules
-          - aws-sdk
-          - esbuild
+Outputs:
+  S3BucketName:
+    Description: Version Configuration Bucket
+    Value: !Ref VersionConfigurationBucket
+
+  CloudFrontDistributionDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt VersionCloudFrontDistribution.DomainName
