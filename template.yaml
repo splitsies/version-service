@@ -9,69 +9,70 @@ Parameters:
   Stage:
     Type: String
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
-Globals:
-  Function:
-    Timeout: 30    
-    MemorySize: 1024
-
-    LoggingConfig:
-      LogFormat: JSON
-
 Resources:
-  VersionServiceApi:
-    Type: AWS::Serverless::Api
+  # S3 Bucket for Content
+  VersionConfigurationBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      StageName: !Sub ${Stage}
+      BucketName: !Sub "splitsies-${AWS::StackName}-${Stage}-bucket"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
 
-  GetMinSupportedVersionFunction:
-    Type: AWS::Serverless::Function
+  # CloudFront Origin Access Identity (OAI) to restrict access to S3 bucket
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
-      CodeUri: ./src
-      Handler: handler.main
-      Runtime: nodejs18.x
-      Events:
-        Notify:
-          Type: Api
-          Properties:
-            Path: /minimum
-            Method: get
-            RestApiId: !Ref VersionServiceApi
-    Metadata: # Manage esbuild properties
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: es2020
-          Sourcemap: true
-          EntryPoints:
-          - functions/get-min-supported-version/handler.ts
-          External:
-          - node_modules
-          - aws-sdk
-          - esbuild
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "OAI for ${AWS::StackName} to restrict S3 access"
 
-  GetProductionVersionFunction:
-    Type: AWS::Serverless::Function
+  # S3 Bucket Policy to allow CloudFront to read content from S3
+  S3VersionConfigurationBucketPolicy:
+    Type: AWS::S3::BucketPolicy
     Properties:
-      CodeUri: ./src
-      Handler: handler.main
-      Runtime: nodejs18.x
-      Events:
-        Notify:
-          Type: Api
-          Properties:
-            Path: /stable
-            Method: get
-            RestApiId: !Ref VersionServiceApi
-    Metadata: # Manage esbuild properties
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: es2020
-          Sourcemap: true
-          EntryPoints:
-          - functions/get-production-version/handler.ts
-          External:
-          - node_modules
-          - aws-sdk
-          - esbuild
+      Bucket: !Ref VersionConfigurationBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt CloudFrontOAI.S3CanonicalUserId
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${VersionConfigurationBucket}/*"
+
+  # CloudFront Distribution
+  VersionCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: MyS3Origin
+            DomainName: !GetAtt VersionConfigurationBucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOAI}"
+        Enabled: true
+        DefaultCacheBehavior:
+          TargetOriginId: MyS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+          DefaultTTL: 604800  # 1 week
+          MaxTTL: 31536000  # 1 year
+          MinTTL: 604800      # 1 week
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true  # Use default SSL certificate
+        PriceClass: PriceClass_100  # For US/Europe only
+
+Outputs:
+  S3BucketName:
+    Description: Version Configuration Bucket
+    Value: !Ref VersionConfigurationBucket
+
+  CloudFrontDistributionDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt VersionCloudFrontDistribution.DomainName
