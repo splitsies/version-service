@@ -85,8 +85,6 @@ typings/
 # Optional REPL history
 .node_repl_history
 
-# Output of 'npm pack'
-*.tgz
 
 # Yarn Integrity file
 .yarn-integrity
@@ -208,3 +206,6 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/osx,node,linux,windows,sam
 
 node_modules
+
+
+src/functions/edge/notify-connection/sns.config.json
